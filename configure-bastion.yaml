@@ -205,9 +205,7 @@
 
   - name: Create image cache container
     shell: |
-      podman stop rhcos_image_cache
-      podman rm rhcos_image_cache
-      podman run -d --name rhcos_image_cache -v /home/kni/rhcos_image_cache:/var/www/html -p 8080:8080/tcp quay.io/centos7/httpd-24-centos7:latest
+      podman run --replace -d --name rhcos_image_cache -v /home/kni/rhcos_image_cache:/var/www/html -p 8080:8080/tcp quay.io/sclorg/httpd-24-micro-c9s:latest
 
   - name: Create openshift-baremetal-install completion bash
     shell: |

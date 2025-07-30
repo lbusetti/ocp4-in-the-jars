@@ -5,13 +5,13 @@ metadata:
 networking:
   machineNetwork:
   - cidr: {{ baremetal_net.net }}/{{ baremetal_net.prefix }}
-  networkType: OpenShiftSDN
+  networkType: OVNKubernetes
 compute:
 - name: worker
-  replicas: 2
+  replicas: {{ worker_nodes | list | length }}
 controlPlane:
   name: master
-  replicas: 3
+  replicas: {{ master_nodes | list | length }}
   platform:
     baremetal: {}
 platform:
@@ -27,6 +27,11 @@ platform:
     provisioningBridge: "provisioning"
     provisioningDHCPRange: {{ provision_net.dhcp_start }},{{ provision_net.dhcp_end }}
     provisioningNetwork: Managed
+{% endif %}
+{% if cluster_dhcp_enabled == False %}
+    bootstrapExternalStaticIP: {{ bootstrap_node.static_ip }}
+    bootstrapExternalStaticGateway: {{ baremetal_net.gateway }}
+    bootstrapExternalStaticDNS: {{ utility_nodes[0].baremetal_ip }}
 {% endif %}
     externalBridge: "baremetal"
     hosts:
@@ -50,6 +55,54 @@ platform:
 {% endif %}
         rootDeviceHints:
          deviceName: "/dev/vda"
+{% if cluster_dhcp_enabled == False %}
+        networkConfig:
+          interfaces:
+          - name: enp1s0
+            type: ethernet 
+            state: up 
+            mac-address: {{ host.baremetal_mac }}
+            permanent-mac-address: {{ host.baremetal_mac }}
+            ipv4:
+              enabled: false 
+            ipv6:
+              enabled: false
+            controller: br-ex
+          - name: br-ex
+            type: ovs-bridge
+            state: up
+            ipv4:
+              enabled: true
+            ipv6:
+              enabled: false
+            bridge:
+              port:
+              - name: enp1s0
+              - name: br-ex
+          - name: br-ex
+            type: ovs-interface
+            state: up
+            copy-mac-from: enp1s0
+            ipv4:
+              enabled: true
+              dhcp: false
+              address:
+              - ip: {{ host.baremetal_ip }}
+                prefix-length: {{ baremetal_net.prefix }}
+            ipv6:
+              enabled: false
+          dns-resolver:
+            config:
+              server:
+              - {{ utility_nodes[0].baremetal_ip }}
+              search:
+              - {{ domain }}
+          routes:
+            config:
+            - destination: 0.0.0.0/0
+              next-hop-address: {{ baremetal_net.gateway }}
+              next-hop-interface: br-ex
+{% endif %}
         bootMode: legacy
 {% endif %}
 {% endfor %}
@@ -73,6 +126,33 @@ platform:
 {% endif %}
         rootDeviceHints:
          deviceName: "/dev/vda"
+ {% if cluster_dhcp_enabled == False %}
+        networkConfig:
+          interfaces:
+          - name: eth0
+            type: ethernet 
+            mac-address: {{ host.baremetal_mac }}
+            permanent-mac-address: {{ host.baremetal_mac }}
+            state: up 
+            ipv4:
+              enabled: true
+              dhcp: false
+              address:
+              - ip: {{ host.baremetal_ip }}
+                prefix-length: {{ baremetal_net.prefix }}
+            ipv6:
+              enabled: false
+              dhcp: false
+          dns-resolver:
+            config:
+              server:
+              - {{ utility_nodes[0].baremetal_ip }}
+          routes:
+            config:
+            - destination: 0.0.0.0/0
+              next-hop-address: {{ baremetal_net.gateway }}
+              next-hop-interface: eth0
+{% endif %}
         bootMode: legacy
 {% endif %}
 {% endfor %}

@@ -51,17 +51,17 @@
     when:
       - kvmhost.create_ssh_key|bool
 
-  - name: Upgrade to latest version
-    dnf:
-      name: "*"
-      state: latest
-    register: upgrade_system
-
-  - name: Reboot after Upgrade
-    reboot:
-      reboot_timeout: "{{ kvmhost.reboot_timeout }}"
-    when:
-      - upgrade_system.changed
+#  - name: Upgrade to latest version
+#    dnf:
+#      name: "*"
+#      state: latest
+#    register: upgrade_system
+#
+#  - name: Reboot after Upgrade
+#    reboot:
+#      reboot_timeout: "{{ kvmhost.reboot_timeout }}"
+#    when:
+#      - upgrade_system.changed
 
   - name: Check selinux status
     shell: |
@@ -224,11 +224,11 @@
       - baremetal_ip is defined
       - kvmhost.enable_baremetal_gw|bool
 
-  - name: Reboot after creating bridges
-    reboot:
-      reboot_timeout: "{{ kvmhost.reboot_timeout }}"
-    when:
-      - kvmhost.provisioning_bridge_create|bool or kvmhost.baremetal_bridge_create|bool
+#  - name: Reboot after creating bridges
+#    reboot:
+#      reboot_timeout: "{{ kvmhost.reboot_timeout }}"
+#    when:
+#      - kvmhost.provisioning_bridge_create|bool or kvmhost.baremetal_bridge_create|bool
 
   - name: Getting rp_filter variables to set
     shell: |
@@ -284,7 +284,7 @@
         - net-tools
         - mlocate
         - sshpass
-        - redhat-lsb-core
+      # - redhat-lsb-core
         - podman
         - ipmitool
         - tree
@@ -350,11 +350,11 @@
     when:
       - redfish.enable|bool
 
-  - name: Install ansible
-    dnf:
-      name:
-        - ansible
-      state: present
+#  - name: Install ansible
+#    dnf:
+#      name:
+#        - ansible
+#      state: present
 
   - name: Add sushy-tools user to libvirt group
     user:
@@ -778,11 +778,11 @@
     when:
       - enable_nested.changed
 
-  - name: Reboot after dracut
-    reboot:
-      reboot_timeout: "{{ kvmhost.reboot_timeout }}"
-    when:
-      - enable_nested.changed
+#  - name: Reboot after dracut
+#    reboot:
+#      reboot_timeout: "{{ kvmhost.reboot_timeout }}"
+#    when:
+#      - enable_nested.changed
 
   - name: Restart Libvirtd Service
     systemd:

@@ -24,11 +24,23 @@
     - vault-variables.yaml
     - bm-ansible-nodes.json
   tasks:
+  - name: Touch dest image to workaround SELinux
+    file:
+      path: "{{ item.hypervisor_image_dir }}/{{ item.name }}.qcow2"
+      state: touch
+    delegate_to: "{{ item.hypervisor_name }}"
+    run_once: True
+    with_items: "{{ bastion_nodes }}"
+
   - name: Copying Template Image to create bastion. RHEL8
     copy:
       src: "{{ item.hypervisor_image_dir }}/rhel8-bastion.qcow2"
-      dest: "{{ item.hypervisor_image_dir }}/bastion.qcow2"
+      dest: "{{ item.hypervisor_image_dir }}/{{ item.name }}.qcow2"
       remote_src: True
+      owner: root
+      group: root
+      seuser: "system_u"
+      mode: 0660
     delegate_to: "{{ item.hypervisor_name }}"
     run_once: True
     with_items: "{{ bastion_nodes }}"
@@ -45,7 +57,7 @@
 
   - name: Defining the bastion vm - redfish
     shell: |
-      virt-install --ram {{ bastion.memory }} --vcpus {{ bastion.cpu }} --os-variant rhel8.5 --disk path={{ item.hypervisor_image_dir }}/bastion.qcow2,device=disk,bus=virtio,format=qcow2 --noautoconsole --vnc --network bridge:{{ bridge_bm }} --name {{ item.name }} --cpu host-passthrough --dry-run --print-xml > /tmp/{{ item.name }}.xml
+      virt-install --ram {{ bastion.memory }} --vcpus {{ bastion.cpu }} --os-variant rhel8.5 --disk path={{ item.hypervisor_image_dir }}/{{ item.name }}.qcow2,device=disk,bus=virtio,format=qcow2 --noautoconsole --vnc --network bridge:{{ bridge_bm }} --name {{ item.name }} --cpu host-passthrough --dry-run --print-xml > /tmp/{{ item.name }}.xml
       virsh define /tmp/{{ item.name }}.xml
     delegate_to: "{{ item.hypervisor_name }}"
     run_once: True
@@ -64,10 +76,17 @@
     when:
       - not redfish.enable|bool
 
+#  - name: Starting bastion vm
+#    virt:
+#      name: "{{ item.name }}"
+#      state: running
+#    delegate_to: "{{ item.hypervisor_name }}"
+#    run_once: True
+#    with_items: "{{ bastion_nodes }}"
+
   - name: Starting bastion vm
-    virt:
-      name: "{{ item.name }}"
-      state: running
+    shell:
+      virsh start --domain "{{ item.name }}"
     delegate_to: "{{ item.hypervisor_name }}"
     run_once: True
     with_items: "{{ bastion_nodes }}"
@@ -258,12 +277,16 @@
     timezone:
       name: UTC
 
-  - name: Registering Bastion
-    redhat_subscription:
-      state: present
-      username: "{{ rh_subcription_user }}"
-      password: "{{ rh_subcription_password }}"
-      force_register: True
+#  - name: Registering Bastion
+#    redhat_subscription:
+#      state: present
+#      username: "{{ rh_subcription_user }}"
+#      password: "{{ rh_subcription_password }}"
+#      force_register: True
+
+  - name: Registering Utility
+    shell: 
+      subscription-manager register --username {{ rh_subcription_user }} --password {{ rh_subcription_password }}
 
   - name: Attach poolid
     shell: |
@@ -271,12 +294,12 @@
 
   - name: Set base repository for the bastion
     shell: |
-      subscription-manager repos --disable='*' --enable=rhel-8-for-x86_64-baseos-rpms --enable=rhel-8-for-x86_64-appstream-rpms --enable=ansible-2.9-for-rhel-8-x86_64-rpms
+      subscription-manager repos --disable='*' --enable=rhel-9-for-x86_64-baseos-rpms --enable=rhel-9-for-x86_64-appstream-rpms --enable=ansible-automation-platform-2.5-for-rhel-9-x86_64-rpms
 
   # maybe the subscription id shouln't has odf subs
   - name: Enable odf repository for the bastion
     shell: |
-      subscription-manager repos --enable=rh-odf-4-for-rhel-8-x86_64-rpms
+      subscription-manager repos --enable=rh-odf-4-for-rhel-9-x86_64-rpms
     ignore_errors: True
 
   - name: Clean yum cache
@@ -303,7 +326,6 @@
         - iptables
         - bash-completion
         - tree
-        - redhat-lsb-core
         - ipmitool
         - nmap
         - ansible

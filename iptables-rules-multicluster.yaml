@@ -1,0 +1,37 @@
+- name: Set port forwarding for second cluster
+  hosts: kvmhost
+  become: True
+  vars_files:
+    - variables.yaml
+  tasks:
+  - name: enable port forwarding for port 4443
+    iptables:
+      table: nat
+      chain: PREROUTING
+      in_interface: "{{ item }}"
+      protocol: tcp
+      to_destination: "{{ vip.apps }}:443"
+      destination_port: 443
+      jump: DNAT
+    with_items:
+      - "{{ ansible_default_ipv4.interface }}"
+      - "{{ bridge_prov }}"
+    when:
+      - kvmhost.enable_portfw|bool
+      - kvmhost.baremetal_bridge_isolated|bool or ( redfish.enable|bool and redfish.enable_nat|bool )
+
+  - name: enable port forwarding for port 8443
+    iptables:
+      table: nat
+      chain: PREROUTING
+      in_interface: "{{ item }}"
+      protocol: tcp
+      to_destination: "{{ vip.api }}:6443"
+      destination_port: 6443
+      jump: DNAT
+    with_items:
+      - "{{ ansible_default_ipv4.interface }}"
+      - "{{ bridge_prov }}"
+    when:
+      - kvmhost.enable_portfw|bool
+      - kvmhost.baremetal_bridge_isolated|bool or ( redfish.enable|bool and redfish.enable_nat|bool )

@@ -24,6 +24,11 @@
     - vault-variables.yaml
     - bm-ansible-nodes.json
   tasks:
+  - name: Ensure that images dir exists 
+    file:
+      path: "{{ bastion_nodes[0].hypervisor_image_dir }}"
+      state: directory
+
   - name: Copying RHEL-8 Image from web to images dir
     get_url:
       url: "{{ image_location }}"
@@ -37,12 +42,23 @@
     ignore_errors: True
     with_items: "{{ bastion_nodes }}"
 
+  - name: Touch dest image to workaround SELinux context
+    file:
+      path: "{{ item.hypervisor_image_dir }}/{{ supported_os }}.qcow2"
+      state: touch
+    with_items: "{{ bastion_nodes }}"
+    delegate_to: "{{ item.hypervisor_name }}"
+    run_once: True
+    when:
+      - image_get_url.failed is defined
+
   - name: Copy RHEL-8 image
     copy:
       remote_src: True
       src: "{{ image_location }}"
       dest: "{{ item.hypervisor_image_dir }}/{{ supported_os }}.qcow2"
       mode: '0660'
+      seuser: "system_u"
       owner: root
       group: root
     delegate_to: "{{ item.hypervisor_name }}"
@@ -60,7 +76,7 @@
 
   - name: Resizing the filesystem
     shell: |
-      virt-resize --format qcow2 --expand /dev/sda3 {{ item.hypervisor_image_dir }}/{{ supported_os }}.qcow2 {{ item.hypervisor_image_dir }}/{{ supported_os }}-100G.qcow2
+      virt-resize --format qcow2 --expand /dev/sda4 {{ item.hypervisor_image_dir }}/{{ supported_os }}.qcow2 {{ item.hypervisor_image_dir }}/{{ supported_os }}-100G.qcow2
     environment:
       LIBGUESTFS_PATH: "{{ libguestfs_path }}"
     delegate_to: "{{ item.hypervisor_name }}"
@@ -70,7 +86,7 @@
 
   - name: Resizing the filesystem
     shell: |
-      virt-resize --format qcow2 --expand /dev/sda3 {{ item.hypervisor_image_dir }}/{{ supported_os }}.qcow2 {{ item.hypervisor_image_dir }}/{{ supported_os }}-100G.qcow2
+      virt-resize --format qcow2 --expand /dev/sda4 {{ item.hypervisor_image_dir }}/{{ supported_os }}.qcow2 {{ item.hypervisor_image_dir }}/{{ supported_os }}-100G.qcow2
     delegate_to: "{{ item.hypervisor_name }}"
     run_once: True
     with_items: "{{ bastion_nodes }}"
@@ -108,11 +124,23 @@
     - vault-variables.yaml
     - bm-ansible-nodes.json
   tasks:
+  - name: Touch dest image path to workaround SELinux
+    file:              
+      path: "{{ item.hypervisor_image_dir }}/{{ supported_os }}-bastion.qcow2"
+      state: touch     
+    with_items: "{{ bastion_nodes }}"
+    delegate_to: "{{ item.hypervisor_name }}"
+    run_once: True     
+
   - name: Copy Base Image to create bastion host image
     copy:
       src: "{{ item.hypervisor_image_dir }}/{{ supported_os }}-100G.qcow2"
       dest: "{{ item.hypervisor_image_dir }}/{{ supported_os }}-bastion.qcow2"
       remote_src: True
+      owner: root
+      group: root
+      seuser: "system_u"
+      mode: 0660
     delegate_to: "{{ item.hypervisor_name }}"
     run_once: True
     with_items: "{{ bastion_nodes }}"

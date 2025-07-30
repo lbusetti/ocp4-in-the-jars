@@ -1,6 +1,9 @@
 bridge_prov: prov
 bridge_bm: bm
 libguestfs_path: /usr/share/guestfs/appliance/
+cluster_dhcp_enabled: False
+bootstrap_node:
+  static_ip: 192.168.203.200
 dns_ip_utility: 1.1.1.1
 three_node_cluster: True
 redfish:
@@ -15,7 +18,7 @@ provision_net:
   net: 192.168.201.0
   netmask: 255.255.255.0
   prefix: 24
-  net_interface: enp1s0
+  net_interface: enp5s0
   dhcp_start: 192.168.201.140
   dhcp_end: 192.168.201.160
   bridge_prov_ip: 192.168.201.1
@@ -30,7 +33,8 @@ baremetal_net:
   dhcp_start: 192.168.203.90
   dhcp_end: 192.168.203.110
   mtu: 1500
-  vlan: 2003
+  vlan: 4000
+  iface: enp5s0
 vip:
   api: 192.168.203.80
   apiint: 192.168.203.80
@@ -50,14 +54,14 @@ bastion:
   post_scaledown: True
 master:
   cpu: 8
-  memory: 49152
+  memory: 32768
   disk: 150G
-  osd_disk: 500G
+  osd_disk: 512G
 worker:
   cpu: 8
   memory: 32768
   disk: 150G
-  osd_disk: 400G
+  osd_disk: 512G
 kvmhost:
   enable_selinux: True
   reboot_timeout: 1200
@@ -72,16 +76,17 @@ kvmhost:
   set_hosts: True
   additional_hosts: personal_hosts.j2
   create_ssh_key: True
-cluster_name: ocp-lab
-base_domain: example.com
+cluster_name: ocp-hub-01
+base_domain: lubusett.org
 domain: "{{ cluster_name }}.{{ base_domain }}"
 enable_ddns_duckdns: False
 enable_letsencrypt: False
+secure_password: 51FswF#rUL4u
 # used on cleanup
 image_dir: /var/lib/libvirt/images
 image_dir_bastion: /var/lib/libvirt/imagesssd
-image: rhel-9.4-x86_64-kvm.qcow2
-image_location: /root/images/rhel-9.4-x86_64-kvm.qcow2
+image: rhel-9.6-x86_64-kvm.qcow2
+image_location: /root/images/rhel-9.6-x86_64-kvm.qcow2
 pull_secret_file: pull-secret.txt
 supported_os: rhel8
-ocpversion: stable-4.16
+ocpversion: stable-4.18
