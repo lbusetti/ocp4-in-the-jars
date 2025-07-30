@@ -419,6 +419,7 @@
       owner: root
       group: root
       mode: 0644
+    when: cluster_dhcp_enabled
 
   - name: Enable dhcpd service
     systemd:
@@ -426,4 +427,5 @@
       state: restarted
       daemon_reload: True
       enabled: True
+    when: cluster_dhcp_enabled
 
