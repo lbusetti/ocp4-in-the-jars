@@ -4,13 +4,13 @@
   vars_files:
     - variables.yaml
   tasks:
-  - name: enable port forwarding for port 4443
+  - name: enable port forwarding for port 443 to utility haproxy
     iptables:
       table: nat
       chain: PREROUTING
       in_interface: "{{ item }}"
       protocol: tcp
-      to_destination: "{{ vip.apps }}:443"
+      to_destination: "192.168.203.254:443"
       destination_port: 443
       jump: DNAT
     with_items:
@@ -20,13 +20,13 @@
       - kvmhost.enable_portfw|bool
       - kvmhost.baremetal_bridge_isolated|bool or ( redfish.enable|bool and redfish.enable_nat|bool )
 
-  - name: enable port forwarding for port 8443
+  - name: enable port forwarding for port 6443
     iptables:
       table: nat
       chain: PREROUTING
       in_interface: "{{ item }}"
       protocol: tcp
-      to_destination: "{{ vip.api }}:6443"
+      to_destination: "192.168.203.254:6443"
       destination_port: 6443
       jump: DNAT
     with_items:

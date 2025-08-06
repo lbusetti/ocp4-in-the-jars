@@ -64,26 +64,6 @@ platform:
             mac-address: {{ host.baremetal_mac }}
             permanent-mac-address: {{ host.baremetal_mac }}
             ipv4:
-              enabled: false 
-            ipv6:
-              enabled: false
-            controller: br-ex
-          - name: br-ex
-            type: ovs-bridge
-            state: up
-            ipv4:
-              enabled: true
-            ipv6:
-              enabled: false
-            bridge:
-              port:
-              - name: enp1s0
-              - name: br-ex
-          - name: br-ex
-            type: ovs-interface
-            state: up
-            copy-mac-from: enp1s0
-            ipv4:
               enabled: true
               dhcp: false
               address:
@@ -101,7 +81,7 @@ platform:
             config:
             - destination: 0.0.0.0/0
               next-hop-address: {{ baremetal_net.gateway }}
-              next-hop-interface: br-ex
+              next-hop-interface: enp1s0
 {% endif %}
         bootMode: legacy
 {% endif %}
